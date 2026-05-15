@@ -1,0 +1,60 @@
+app:
+  name: motion-sentinel
+  version: "0.1.0"
+  log_level: INFO
+
+capture:
+  # source: "data/test_video.mp4"
+  source: 0     # 0 = webcam por defecto: acepta ruta de archivo o URL RTSP
+  width: 1280
+  height: 720
+  fps: 30
+  window_title: "Motion Sentinel by Mr. Sam"
+
+detection:
+  resize_width: 640  # ancho al que se reduce el frame antes de procesar
+  blur_kernel: 21    # tamaño del kernel gaussiano (debe ser impar)
+  threshold: 25      # umbral de absdiff (0-255); más bajo = más sensible
+  min_area: 500      # área mínima en px² para considerar una región válida
+  dilation_iterations: 2
+ 
+renderer:
+  show_mask_inset: false  # true = miniatura de la máscara en esquina inferior
+
+alerts:
+  low_threshold: 0.05
+  medium_threshold: 0.15
+  high_threshold: 0.30
+  anomaly_threshold: 0.50
+  cooldown_frames: 15
+
+recorder:
+  output_dir: "data/snapshots"
+  image_format: "jpg"
+  jpeg_quality: 90
+  filename_prefix: "event"
+
+frame_buffer:
+  enabled: true    # false = VideoSource clásico (single-thread)
+  maxsize: 8       # frames máximos en cola; ajustar según RAM disponible
+  drop_oldest: true  # true = frames frescos siempre; false = lossless (puede bloquear)
+
+rois:
+  - name: "puerta"
+    x: 0
+    y: 150
+    width: 250
+    height: 330
+    weight: 2.0      # zona crítica: doble peso
+  - name: "pasillo"
+    x: 250
+    y: 0
+    width: 400
+    height: 480
+    weight: 1.0
+  - name: "ventana"
+    x: 850
+    y: 80
+    width: 200
+    height: 180
+    weight: 1.5

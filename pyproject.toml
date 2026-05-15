@@ -1,0 +1,42 @@
+[project]
+name = "motion-sentinel"
+version = "0.1.0"
+description = "Real-time motion detection"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "opencv-python>=4.9",
+    "numpy>=1.26",
+    "PyYAML>=6.0",
+    "structlog>=24.0",
+]
+
+[project.scripts]
+motion-sentinel = "motion_sentinel.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["motion_sentinel*"]
+exclude = ["config*", "docker*", "tests*"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG001", # unused arguments in functions
+    "T201",   # print statements are not allowed
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "W191",  # indentation contains tabs
+    "B904",  # Allow raising exceptions without from e, for HTTPException
+]
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
