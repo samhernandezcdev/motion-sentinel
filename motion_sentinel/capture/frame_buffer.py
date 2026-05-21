@@ -65,7 +65,7 @@ class FrameBuffer:
     # API pública
     # ------------------------------------------------------------------
 
-    def put(self, frame: np.ndarray) -> None:
+    def put(self, frame: np.ndarray, timeout: float | None = None) -> bool:
         """
         Inserta un frame en el buffer.
 
@@ -73,21 +73,34 @@ class FrameBuffer:
         el frame más antiguo antes de insertar, garantizando que el
         productor nunca se bloquee.
 
-        Si ``drop_oldest=False`` bloquea al productor hasta que haya espacio
-        (comportamiento estándar de ``queue.Queue``).
+        Si ``drop_oldest=False`` bloquea al productor hasta que haya espacio.
+        ``timeout`` permite usar esperas cortas en loops que deben responder
+        a una señal de parada.
+
+        Devuelve ``True`` si el frame se insertó, ``False`` si expiró el timeout.
         """
-        if self._cfg.drop_oldest and self._q.full():
+        if self._cfg.drop_oldest:
+            if self._q.full():
+                try:
+                    self._q.get_nowait()  # descartar el frame más viejo
+                except queue.Empty:
+                    pass  # race condition inocua; el consumer lo tomó
+
             try:
-                self._q.get_nowait()   # descartar el frame más viejo
-            except queue.Empty:
-                pass                   # race condition inocua; el consumer lo tomó
+                self._q.put_nowait(frame)
+                return True
+            except queue.Full:
+                log.warning("FrameBuffer lleno, frame descartado")
+                return False
 
         try:
-            self._q.put_nowait(frame)
+            if timeout is None:
+                self._q.put(frame)
+            else:
+                self._q.put(frame, timeout=timeout)
+            return True
         except queue.Full:
-            # Solo alcanzable en modo lossless con alta contención;
-            # se registra y se descarta silenciosamente.
-            log.warning("FrameBuffer lleno, frame descartado")
+            return False
 
     def get(self, timeout: float | None = None) -> np.ndarray | None:
         """
@@ -124,6 +137,11 @@ class FrameBuffer:
     def empty(self) -> bool:
         """``True`` si el buffer está vacío."""
         return self._q.empty()
+
+    @property
+    def config(self) -> FrameBufferConfig:
+        """Configuración activa del buffer."""
+        return self._cfg
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +224,7 @@ class BufferedVideoSource:
             daemon=True,
         )
         self._thread.start()
-        log.info("Hilo productor iniciado", buffer_maxsize=self._buffer._cfg.maxsize)
+        log.info("Hilo productor iniciado", buffer_maxsize=self._buffer.config.maxsize)
 
     def stop(self) -> None:
         """
@@ -258,6 +276,13 @@ class BufferedVideoSource:
     # Hilo productor (privado)
     # ------------------------------------------------------------------
 
+    def _put_frame(self, frame: np.ndarray) -> bool:
+        """Inserta un frame sin impedir que ``stop()`` pueda cerrar el hilo."""
+        while not self._stop_event.is_set():
+            if self._buffer.put(frame, timeout=0.1):
+                return True
+        return False
+
     def _producer_loop(self) -> None:
         """
         Loop interno del hilo de captura.
@@ -273,19 +298,25 @@ class BufferedVideoSource:
                     break
 
                 before = self._buffer.size()
-                self._buffer.put(frame)
+                inserted = self._put_frame(frame)
+                if not inserted:
+                    break
                 after = self._buffer.size()
 
                 self._state.frames_captured += 1
 
-                # Si el tamaño no creció, se descartó el frame más viejo
-                if after <= before and before == self._buffer._cfg.maxsize:
+                # Si el tamaño no creció en modo drop_oldest, se descartó el frame más viejo
+                if (
+                    self._buffer.config.drop_oldest
+                    and after <= before
+                    and before == self._buffer.config.maxsize
+                ):
                     self._state.frames_dropped += 1
 
         except Exception:
             log.exception("Error inesperado en el hilo productor")
         finally:
-            self._stop_event.set()   # notificar al consumer que terminamos
+            self._stop_event.set()  # notificar al consumer que terminamos
             log.debug(
                 "Hilo productor finalizado",
                 capturados=self._state.frames_captured,

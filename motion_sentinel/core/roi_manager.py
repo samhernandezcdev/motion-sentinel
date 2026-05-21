@@ -105,6 +105,39 @@ class ROI:
         """``True`` si el ROI tiene área positiva (width > 0 y height > 0)."""
         return self.width > 0 and self.height > 0
 
+    def scaled(
+        self,
+        from_shape: tuple[int, int],
+        to_shape: tuple[int, int],
+    ) -> ROI:
+        """
+        Devuelve una copia escalada desde ``from_shape`` hacia ``to_shape``.
+
+        Las formas son ``(height, width)``. Esto permite definir ROIs sobre
+        el frame fuente y analizarlos/dibujarlos sobre el frame procesado.
+        """
+        from_h, from_w = from_shape
+        to_h, to_w = to_shape
+
+        if from_h <= 0 or from_w <= 0 or to_h <= 0 or to_w <= 0:
+            return self
+
+        if from_shape == to_shape:
+            return self
+
+        scale_x = to_w / from_w
+        scale_y = to_h / from_h
+
+        return ROI(
+            name=self.name,
+            x=int(round(self.x * scale_x)),
+            y=int(round(self.y * scale_y)),
+            width=max(1, int(round(self.width * scale_x))),
+            height=max(1, int(round(self.height * scale_y))),
+            weight=self.weight,
+            enabled=self.enabled,
+        )
+
 
 @dataclass(frozen=True)
 class ROIHit:
@@ -161,6 +194,14 @@ class ROIManager:
         """Devuelve los ROIs con ``enabled=True``."""
         return [r for r in self._rois if r.enabled]
 
+    def scaled_enabled_rois(
+        self,
+        from_shape: tuple[int, int],
+        to_shape: tuple[int, int],
+    ) -> list[ROI]:
+        """Devuelve los ROIs activos escalados al tamaño del frame destino."""
+        return [r.scaled(from_shape, to_shape) for r in self.enabled_rois()]
+
     # ------------------------------------------------------------------
     # Análisis
     # ------------------------------------------------------------------
@@ -169,6 +210,7 @@ class ROIManager:
         self,
         regions: list[MotionRegion],
         frame_shape: tuple[int, int],
+        source_shape: tuple[int, int] | None = None,
     ) -> list[ROIHit]:
         """
         Determina en qué ROIs hay actividad y acumula métricas por zona.
@@ -188,6 +230,9 @@ class ROIManager:
         frame_shape:
             ``(height, width)`` del frame procesado. Se usa para recortar
             los ROIs al tamaño real antes de evaluar pertenencia.
+        source_shape:
+            ``(height, width)`` del frame fuente antes de resize. Si se pasa,
+            los ROIs se escalan hacia ``frame_shape`` antes del análisis.
 
         Devuelve
         --------
@@ -199,6 +244,9 @@ class ROIManager:
         active = self.enabled_rois()
         if not active or not regions:
             return []
+
+        if source_shape is not None:
+            active = [roi.scaled(source_shape, frame_shape) for roi in active]
 
         frame_h, frame_w = frame_shape
 

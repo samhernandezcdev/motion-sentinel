@@ -4,8 +4,8 @@ app:
   log_level: INFO
 
 capture:
-  # source: "data/test_video.mp4"
-  source: 0     # 0 = webcam por defecto: acepta ruta de archivo o URL RTSP
+  source: "data/test_video.mp4"
+  # source: 0     # 0 = webcam por defecto: acepta ruta de archivo o URL RTSP
   width: 1280
   height: 720
   fps: 30

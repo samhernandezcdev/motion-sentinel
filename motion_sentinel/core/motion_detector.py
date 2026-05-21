@@ -7,6 +7,7 @@ Pipeline:
 Solo implementa frame differencing clásico. MOG2 / KNN se agregan en fases
 posteriores como estrategias intercambiables (Strategy pattern).
 """
+
 from dataclasses import dataclass
 
 import cv2
@@ -25,6 +26,7 @@ class MotionRegion:
     area:
         Área del contorno en píxeles².
     """
+
     bbox: tuple[int, int, int, int]
     area: float
 
@@ -62,7 +64,6 @@ class FrameDifferenceMotionDetector:
 
         self._prev_frame: np.ndarray | None = None
 
-
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -97,7 +98,9 @@ class FrameDifferenceMotionDetector:
         _, mask = cv2.threshold(diff, self.threshold, 255, cv2.THRESH_BINARY)
 
         # 3. Dilatación morfológica -> une regiones fragmentados por ruido
-        mask = cv2.dilate(mask, self._DILATION_KERNEL, iterations=self.dilation_iterations)
+        mask = cv2.dilate(
+            mask, self._DILATION_KERNEL, iterations=self.dilation_iterations
+        )
 
         # 4. Contornos externos sobre la máscara dilatada
         contours, _ = cv2.findContours(
@@ -123,7 +126,6 @@ class FrameDifferenceMotionDetector:
 
         return mask, regions
 
-
     def reset(self) -> None:
         """
         Descarta el frame de referencia.
@@ -132,4 +134,3 @@ class FrameDifferenceMotionDetector:
         o en tests para reiniciar el estado interno sin crear una nueva instancia.
         """
         self._prev_frame = None
-

@@ -30,13 +30,14 @@ _WHITE = (255, 255, 255)
 _BLACK = (0, 0, 0)
 _GRAY = (160, 160, 160)
 _OVERLAY_BG = (20, 20, 20)
-_CYAN = (200, 200, 0)       # ROI activo
-_DIM_CYAN = (100, 100, 0)   # ROI sin actividad
+_CYAN = (200, 200, 0)  # ROI activo
+_DIM_CYAN = (100, 100, 0)  # ROI sin actividad
 
 
 # ---------------------------------------------------------------------------
 # Configuración del renderer
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class RendererConfig:
@@ -53,18 +54,21 @@ class RendererConfig:
     hud_font: int = cv2.FONT_HERSHEY_SIMPLEX
     hud_font_scale: float = 0.55
     hud_font_thickness: int = 1
-    hud_margin: int = 10          # px desde el borde superior-izquierdo
-    hud_line_height: int = 22     # px entre líneas del HUD
-    hud_bg_alpha: float = 0.45    # opacidad del fondo semitransparente del HUD
+    hud_margin: int = 10  # px desde el borde superior-izquierdo
+    hud_line_height: int = 22  # px entre líneas del HUD
+    hud_bg_alpha: float = 0.45  # opacidad del fondo semitransparente del HUD
     show_mask_inset: bool = False  # miniatura de la máscara en esquina inferior
-    show_rois: bool = True           # dibujar zonas ROI sobre el frame
-    roi_thickness: int = 1           # grosor de línea de los rectángulos ROI
-    anomaly_alert_threshold: float = 0.35 # umbral de anomaly_score a partir del cual el score se muestra en rojo
+    show_rois: bool = True  # dibujar zonas ROI sobre el frame
+    roi_thickness: int = 1  # grosor de línea de los rectángulos ROI
+    anomaly_alert_threshold: float = (
+        0.35  # umbral de anomaly_score a partir del cual el score se muestra en rojo
+    )
 
 
 # ---------------------------------------------------------------------------
 # Función pública principal
 # ---------------------------------------------------------------------------
+
 
 def render_motion_overlay(
     frame: np.ndarray,
@@ -129,6 +133,7 @@ def render_motion_overlay(
 # Helpers de dibujo
 # ---------------------------------------------------------------------------
 
+
 def _draw_rois(
     frame: np.ndarray,
     rois: list[ROI],
@@ -168,15 +173,45 @@ def _draw_rois(
         label = f"{roi.name}{weight_str}"
 
         label_y = max(roi.y - 4, 10)
-        cv2.putText(frame, label, (roi.x + 2, label_y), font, scale, _BLACK, thick + 1, cv2.LINE_AA)
-        cv2.putText(frame, label, (roi.x + 2, label_y), font, scale, color, thick, cv2.LINE_AA)
+        cv2.putText(
+            frame,
+            label,
+            (roi.x + 2, label_y),
+            font,
+            scale,
+            _BLACK,
+            thick + 1,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            frame, label, (roi.x + 2, label_y), font, scale, color, thick, cv2.LINE_AA
+        )
 
         # Métricas inline solo si hay actividad
         if active and hit is not None:
             metrics_str = f"area={int(hit.total_area)} sc={hit.weighted_score:.0f}"
             metrics_y = min(roi.y2 + 12, frame.shape[0] - 4)
-            cv2.putText(frame, metrics_str, (roi.x + 2, metrics_y), font, scale, _BLACK, thick + 1, cv2.LINE_AA)
-            cv2.putText(frame, metrics_str, (roi.x + 2, metrics_y), font, scale, color, thick, cv2.LINE_AA)
+            cv2.putText(
+                frame,
+                metrics_str,
+                (roi.x + 2, metrics_y),
+                font,
+                scale,
+                _BLACK,
+                thick + 1,
+                cv2.LINE_AA,
+            )
+            cv2.putText(
+                frame,
+                metrics_str,
+                (roi.x + 2, metrics_y),
+                font,
+                scale,
+                color,
+                thick,
+                cv2.LINE_AA,
+            )
+
 
 def _draw_bboxes(
     frame: np.ndarray,
@@ -288,10 +323,7 @@ def _render_hud_lines(
     thick = config.hud_font_thickness
 
     # Calcular el ancho máximo de texto para el fondo semitransparente
-    text_widths = [
-        cv2.getTextSize(text, font, scale, thick)[0][0]
-        for text, _ in lines
-    ]
+    text_widths = [cv2.getTextSize(text, font, scale, thick)[0][0] for text, _ in lines]
     bg_w = max(text_widths) + m * 2
     bg_h = lh * len(lines) + m
 
@@ -305,9 +337,10 @@ def _render_hud_lines(
     # Texto línea a línea
     for i, (text, color) in enumerate(lines):
         y_pos = m + lh * (i + 1) - 4
-        cv2.putText(frame, text, (m + 4, y_pos), font, scale, _BLACK, thick + 1, cv2.LINE_AA)
+        cv2.putText(
+            frame, text, (m + 4, y_pos), font, scale, _BLACK, thick + 1, cv2.LINE_AA
+        )
         cv2.putText(frame, text, (m + 4, y_pos), font, scale, color, thick, cv2.LINE_AA)
-
 
 
 def _draw_mask_inset(frame: np.ndarray, mask: np.ndarray) -> None:

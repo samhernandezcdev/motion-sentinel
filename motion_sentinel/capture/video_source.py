@@ -9,12 +9,17 @@ Uso:
             # frame es un numpy.ndarray BGR
             ...
 """
+
 from collections.abc import Generator
 
 import cv2
 import numpy as np
 
 from motion_sentinel.common.logger import get_logger
+from motion_sentinel.common.url_utils import (
+    is_rewindable_local_file,
+    redact_url_credentials,
+)
 
 log = get_logger(__name__)
 
@@ -52,20 +57,22 @@ class VideoSource:
 
         self._cap: cv2.VideoCapture | None = None
 
-        # True si la fuente es un archivo de vídeo local
-        self._is_file = isinstance(source, str)
-
+        # True si la fuente es un archivo local que puede reiniciarse.
+        self._is_file = is_rewindable_local_file(source)
 
     # ------------------------------------------------------------------
     # Context manager
     # ------------------------------------------------------------------
 
     def open(self) -> "VideoSource":
-        log.info("Abriendo fuente de vídeo", source=self.source)
+        log.info("Abriendo fuente de vídeo", source=redact_url_credentials(self.source))
         self._cap = cv2.VideoCapture(self.source)
 
         if not self._cap.isOpened():
-            raise VideoSourceError(f"No se puede abrir la fuente de vídeo: {self.source!r}")
+            safe_source = redact_url_credentials(self.source)
+            raise VideoSourceError(
+                f"No se puede abrir la fuente de vídeo: {safe_source!r}"
+            )
 
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
@@ -81,21 +88,17 @@ class VideoSource:
         )
         return self
 
-
     def close(self) -> None:
         if self._cap is not None:
             self._cap.release()
             self._cap = None
             log.info("Fuente de vídeo cerrada")
 
-
     def __enter__(self) -> "VideoSource":
         return self.open()
 
-
     def __exit__(self, *_: object) -> None:
         self.close()
-
 
     # ------------------------------------------------------------------
     # Frame iteration
@@ -104,7 +107,9 @@ class VideoSource:
     def read(self) -> np.ndarray | None:
         """Lee un único frame. Devuelve None si la fuente se agotó."""
         if self._cap is None:
-            raise VideoSourceError("VideoSource no está abierto. Llama primero a open()")
+            raise VideoSourceError(
+                "VideoSource no está abierto. Llama primero a open()"
+            )
 
         ok, frame = self._cap.read()
 
@@ -124,7 +129,6 @@ class VideoSource:
 
         return None
 
-
     def frames(self) -> Generator[np.ndarray, None, None]:
         """Generador que produce frames hasta que la fuente se agota."""
         while True:
@@ -132,7 +136,6 @@ class VideoSource:
             if frame is None:
                 break
             yield frame
-
 
     def __iter__(self) -> Generator[np.ndarray, None, None]:
         """Permite: for frame in video_source."""

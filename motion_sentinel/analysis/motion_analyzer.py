@@ -126,7 +126,6 @@ class MotionAnalyzer:
         # Historial deslizante de motion_ratio por frame
         self._ratio_history: deque[float] = deque(maxlen=history_size)
 
-
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
@@ -135,7 +134,7 @@ class MotionAnalyzer:
         self,
         frame_shape: tuple[int, int],
         regions: Sequence[MotionRegion],
-        mask: np.ndarray | None = None,     # noqa: ARG002
+        mask: np.ndarray | None = None,  # noqa: ARG002
     ) -> MotionMetrics:
         """
         Calcula y devuelve las métricas para el frame actual.
@@ -184,7 +183,6 @@ class MotionAnalyzer:
             motion_detected=len(regions) > 0,
         )
 
-
     @property
     def baseline_ratio(self) -> float:
         """
@@ -200,7 +198,6 @@ class MotionAnalyzer:
             return 0.0
         return sum(self._ratio_history) / len(self._ratio_history)
 
-
     def reset(self) -> None:
         """
         Limpia el historial de ratios.
@@ -214,6 +211,7 @@ class MotionAnalyzer:
 # ---------------------------------------------------------------------------
 # Funciones de cálculo puras (sin estado, testeables de forma aislada)
 # ---------------------------------------------------------------------------
+
 
 def _frame_area(frame_shape: tuple[int, int]) -> float:
     """

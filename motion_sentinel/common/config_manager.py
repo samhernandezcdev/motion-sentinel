@@ -6,6 +6,7 @@ Uso:
     cfg = ConfigManager("config/default.yaml")
     source = cfg.get("capture.source", default=0)
 """
+
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,6 @@ class ConfigManager:
         self._path = Path(path)
         self._data: dict[str, Any] = self._load()
 
-
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
@@ -31,10 +31,8 @@ class ConfigManager:
             data = yaml.safe_load(fh)
         return data or {}
 
-
     def reload(self) -> None:
         self._data = self._load()
-
 
     # ------------------------------------------------------------------
     # Public API
@@ -58,7 +56,6 @@ class ConfigManager:
             node = node[part]
 
         return node
-
 
     @property
     def data(self) -> dict[str, Any]:

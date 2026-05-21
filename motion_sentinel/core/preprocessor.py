@@ -75,6 +75,7 @@ def preprocess_for_motion(
 # Helpers internos
 # ---------------------------------------------------------------------------
 
+
 def _ensure_odd(value: int) -> int:
     """Devuelve `value` si es impar, o `value + 1` si es par. Mínimo 1."""
     value = max(1, value)

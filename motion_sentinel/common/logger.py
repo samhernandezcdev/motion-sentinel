@@ -6,6 +6,7 @@ Uso:
     log = get_logger(__name__)
     log.info("mensaje", key=value)
 """
+
 import logging
 import sys
 from typing import Any

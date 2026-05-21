@@ -22,6 +22,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from motion_sentinel.common.url_utils import redact_url_credentials
+
 if TYPE_CHECKING:
     from motion_sentinel.common.config_manager import ConfigManager
 
@@ -102,7 +104,7 @@ class CaptureConfig:
     def __str__(self) -> str:
         return (
             f"CaptureConfig("
-            f"source={self.source!r}, "
+            f"source={redact_url_credentials(self.source)!r}, "
             f"{self.width}x{self.height}@{self.fps}fps, "
             f"window={self.window_title!r})"
         )

@@ -15,6 +15,7 @@ Lo que NO hace (fases futuras)
 - No hace inferencia ML         → Fase 3 (anomaly.py + TensorFlow).
 - No envía notificaciones       → Fase 2 (notif.py).
 """
+
 from dataclasses import dataclass
 from enum import Enum, auto
 
@@ -30,11 +31,11 @@ class AlertSeverity(Enum):
     no por valor, para evitar acoplamientos frágiles con los enteros de ``auto()``.
     """
 
-    NONE = auto()       # Sin movimiento - no genera AlertEvent
-    LOW = auto()        # Actividad mínima por encima del umbral de detección
-    MEDIUM = auto()     # Actividad moderada, monitorizar
-    HIGH = auto()       # Actividad elevada, candidata a grabación
-    ANOMALY = auto()    # Patrón fuera de lo esperado, grabación recomendada
+    NONE = auto()  # Sin movimiento - no genera AlertEvent
+    LOW = auto()  # Actividad mínima por encima del umbral de detección
+    MEDIUM = auto()  # Actividad moderada, monitorizar
+    HIGH = auto()  # Actividad elevada, candidata a grabación
+    ANOMALY = auto()  # Patrón fuera de lo esperado, grabación recomendada
 
 
 @dataclass(frozen=True)
@@ -134,7 +135,6 @@ class AlertManager:
         # Frames restantes de silencio. 0 = listo para emitir.
         self._cooldown_remaining: int = 0
 
-
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
@@ -185,9 +185,12 @@ class AlertManager:
             anomaly_score=metrics.anomaly_score,
             motion_ratio=metrics.motion_ratio,
             active_regions=metrics.active_regions,
-            should_record=severity in {AlertSeverity.HIGH, AlertSeverity.ANOMALY,}
+            should_record=severity
+            in {
+                AlertSeverity.HIGH,
+                AlertSeverity.ANOMALY,
+            },
         )
-
 
     def reset(self) -> None:
         """
@@ -198,7 +201,6 @@ class AlertManager:
         desde la primera llamada a ``evaluate()``.
         """
         self._cooldown_remaining = 0
-
 
     # ------------------------------------------------------------------
     # Estado observable (read-only, útil para tests y HUD futuro)
@@ -213,7 +215,6 @@ class AlertManager:
     def in_cooldown(self) -> bool:
         """``True`` si el manager está suprimiendo alertas por cooldown."""
         return self._cooldown_remaining > 0
-
 
     # ------------------------------------------------------------------
     # Clasificación interna
@@ -241,6 +242,7 @@ class AlertManager:
 # Funciones puras auxiliares
 # ---------------------------------------------------------------------------
 
+
 def _message_for(severity: AlertSeverity) -> str:
     """
     Devuelve el mensaje técnico canónico para cada nivel de severidad.
@@ -257,7 +259,9 @@ def _message_for(severity: AlertSeverity) -> str:
     }[severity]
 
 
-def _validate_thresholds(low: float, medium: float, high: float, anomaly: float) -> None:
+def _validate_thresholds(
+    low: float, medium: float, high: float, anomaly: float
+) -> None:
     """
     Verifica que los umbrales forman una secuencia estrictamente creciente
     en el intervalo (0, 1).
